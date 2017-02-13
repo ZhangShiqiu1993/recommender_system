@@ -16,10 +16,10 @@
 
 
 ---
-描述一下workflow
-基于什么理论
-
-不要写 “用了4个mapreduce实现”
+Item CF
++ Build co-occurrence matrix
++ Build rating matrix
++ Matrix computation to get recommending result
 
 
 ---

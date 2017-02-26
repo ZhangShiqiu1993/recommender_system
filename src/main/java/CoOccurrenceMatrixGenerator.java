@@ -11,60 +11,65 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 import java.io.IOException;
 
-/**
- * Created by zhangshiqiu on 2017/2/16.
- */
 public class CoOccurrenceMatrixGenerator {
-    public static class MatrixGeneratorMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
-        @Override
-        public void map(LongWritable key, Text value, Context context)
-                throws IOException, InterruptedException {
-            //value = userid\tmovie1:rating,movie2:rating...
-            String[] user_movieRating = value.toString().trim().split("\t");
-            if (user_movieRating.length != 2) {
-                return;
-            }
+	public static class MatrixGeneratorMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
 
-            String[] movie_ratings = user_movieRating[1].split(",");
-            for (int i = 0; i < movie_ratings.length; i++) {
-                String movieA = movie_ratings[i].trim().split(":")[0];
-                for (int j = 0; j < movie_ratings.length; j++) {
-                    String movieB = movie_ratings[j].trim().split(":")[0];
-                    context.write(new Text(movieA + ":" + movieB), new IntWritable(1));
+		// map method
+		@Override
+		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+			//value = userid \t movie1: rating, movie2: rating...
+			//key = movie1: movie2 value = 1
+			//calculate the movies which are watched by the same user
+			//occurrence list: <movieA, movieB>
+			String[] user_movieRating = value.toString().trim().split("\t");
+			String[] movie_ratings = user_movieRating[1].split(",");
+
+            for (String movieA_rating : movie_ratings) {
+			    String movieA = movieA_rating.split(":")[0];
+			    for (String movieB_rating : movie_ratings) {
+			        String movieB = movieB_rating.split(":")[0];
+			        StringBuilder builder = new StringBuilder();
+			        builder.append(movieA).append(":").append(movieB);
+			        context.write(new Text(builder.toString()), new IntWritable(1));
                 }
             }
-        }
-    }
+		}
+	}
 
-    public static class MatrixGeneratorReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
-        @Override
-        public void reduce(Text key, Iterable<IntWritable> values, Context context)
-                throws IOException, InterruptedException{
+	public static class MatrixGeneratorReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+		// reduce method
+		@Override
+		public void reduce(Text key, Iterable<IntWritable> values, Context context)
+				throws IOException, InterruptedException {
+			//key movie1:movie2 value = iterable<1, 1, 1>
+			//calculate each two movies have been watched by how many people
             int sum = 0;
-            for (IntWritable value : values){
+            for (IntWritable value : values) {
                 sum += value.get();
             }
             context.write(key, new IntWritable(sum));
-        }
-    }
-
-    public static void main(String[] args) throws Exception{
-        Configuration configuration = new Configuration();
-        Job job = Job.getInstance(configuration);
-
-        job.setMapperClass(MatrixGeneratorMapper.class);
-        job.setReducerClass(MatrixGeneratorReducer.class);
-
-        job.setJarByClass(CoOccurrenceMatrixGenerator.class);
-
-        job.setInputFormatClass(TextInputFormat.class);
-        job.setOutputFormatClass(TextOutputFormat.class);
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(IntWritable.class);
-
-        TextInputFormat.setInputPaths(job, new Path(args[0]));
-        TextOutputFormat.setOutputPath(job, new Path(args[1]));
-
-        job.waitForCompletion(true);
-    }
+		}
+	}
+	
+	public static void main(String[] args) throws Exception{
+		
+		Configuration conf = new Configuration();
+		
+		Job job = Job.getInstance(conf);
+		job.setMapperClass(MatrixGeneratorMapper.class);
+		job.setReducerClass(MatrixGeneratorReducer.class);
+		
+		job.setJarByClass(CoOccurrenceMatrixGenerator.class);
+		
+		job.setInputFormatClass(TextInputFormat.class);
+		job.setOutputFormatClass(TextOutputFormat.class);
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(IntWritable.class);
+		
+		TextInputFormat.setInputPaths(job, new Path(args[0]));
+		TextOutputFormat.setOutputPath(job, new Path(args[1]));
+		
+		job.waitForCompletion(true);
+		
+	}
 }

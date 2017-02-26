@@ -21,6 +21,9 @@ public class DataDividerByUser {
 			//input user,movie,rating
 			//divide data by user
 			String[] user_movieRating = value.toString().trim().split(",");
+			if (user_movieRating.length != 3){
+			    return;
+            }
 			int userID = Integer.parseInt(user_movieRating[0]);
 			StringBuffer buffer = new StringBuffer();
 			buffer.append(user_movieRating[1]).append(":").append(user_movieRating[2]);

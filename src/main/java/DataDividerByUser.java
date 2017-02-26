@@ -10,62 +10,57 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 import java.io.IOException;
-import java.util.Iterator;
 
-/**
- * Created by zhangshiqiu on 2017/2/14.
- */
 public class DataDividerByUser {
-    public static class DataDividerMapper extends Mapper<LongWritable, Text, IntWritable, Text> {
-        @Override
-        public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-            //input: userID, movieID, rating
-            String[] user_movie_rating = value.toString().trim().split(",");
-            if (user_movie_rating.length < 3) {
-                return;
-            }
-            int userID = Integer.parseInt(user_movie_rating[0]);
-            String moveID = user_movie_rating[1];
-            String rating = user_movie_rating[2];
-            context.write(new IntWritable(userID), new Text(moveID + ":" + rating));
-        }
-    }
+	public static class DataDividerMapper extends Mapper<LongWritable, Text, IntWritable, Text> {
 
-    public static class DataDividerReducer extends Reducer<IntWritable, Text, IntWritable, Text> {
-        @Override
-        public void reduce(IntWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-            // key: userID
-            // values: <moveID:rating, ...>
+		// map method
+		@Override
+		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 
-            // output key: userID
-            // output value: list of movies
+			//input user,movie,rating
+			//divide data by user
+			String[] user_movieRating = value.toString().trim().split(",");
+			int userID = Integer.parseInt(user_movieRating[0]);
+			StringBuffer buffer = new StringBuffer();
+			buffer.append(user_movieRating[1]).append(":").append(user_movieRating[2]);
+			context.write(new IntWritable(userID), new Text(buffer.toString()));
+		}
+	}
+
+	public static class DataDividerReducer extends Reducer<IntWritable, Text, IntWritable, Text> {
+		// reduce method
+		@Override
+		public void reduce(IntWritable key, Iterable<Text> values, Context context)
+				throws IOException, InterruptedException {
             StringBuilder builder = new StringBuilder();
-            Iterator<Text> iter = values.iterator();
-            while (iter.hasNext()){
-                builder.append(",").append(iter.next().toString());
+			//merge data for one user
+            for (Text value : values) {
+                builder.append(",").append(value.toString());
             }
-            context.write(key, new Text(builder.toString().replaceFirst(",", "")));
-        }
-    }
+            context.write(key, new Text(builder.toString().replaceFirst(",","")));
+		}
+	}
 
-    public static void main(String[] args) throws Exception {
-        Configuration configuration = new Configuration();
+	public static void main(String[] args) throws Exception {
 
-        Job job = Job.getInstance(configuration);
+		Configuration conf = new Configuration();
 
-        job.setMapperClass(DataDividerMapper.class);
-        job.setReducerClass(DataDividerReducer.class);
+		Job job = Job.getInstance(conf);
+		job.setMapperClass(DataDividerMapper.class);
+		job.setReducerClass(DataDividerReducer.class);
 
-        job.setJarByClass(DataDividerByUser.class);
+		job.setJarByClass(DataDividerByUser.class);
 
-        job.setInputFormatClass(TextInputFormat.class);
-        job.setOutputFormatClass(TextOutputFormat.class);
-        job.setOutputKeyClass(IntWritable.class);
-        job.setOutputValueClass(Text.class);
+		job.setInputFormatClass(TextInputFormat.class);
+		job.setOutputFormatClass(TextOutputFormat.class);
+		job.setOutputKeyClass(IntWritable.class);
+		job.setOutputValueClass(Text.class);
 
-        TextInputFormat.setInputPaths(job, new Path(args[0]));
-        TextOutputFormat.setOutputPath(job, new Path(args[1]));
+		TextInputFormat.setInputPaths(job, new Path(args[0]));
+		TextOutputFormat.setOutputPath(job, new Path(args[1]));
 
-        job.waitForCompletion(true);
-    }
+		job.waitForCompletion(true);
+	}
+
 }

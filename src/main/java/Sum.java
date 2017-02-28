@@ -1,5 +1,4 @@
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.DU;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -13,7 +12,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import java.io.IOException;
 
 /**
- * Created by zhangshiqiu on 2017/2/17.
+ * Created by Michelle on 11/12/16.
  */
 public class Sum {
 
@@ -22,9 +21,9 @@ public class Sum {
         // map method
         @Override
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-            // value : user:movieA \t subSum
+
             //pass data to reducer
-            String[] line = value.toString().trim().split("\t");
+            String[] line = value.toString().split("\t");
             context.write(new Text(line[0]), new DoubleWritable(Double.parseDouble(line[1])));
         }
     }
@@ -35,11 +34,10 @@ public class Sum {
         public void reduce(Text key, Iterable<DoubleWritable> values, Context context)
                 throws IOException, InterruptedException {
 
-            //key : user:movie
-            //value : <subSum, subSum...>
-            //calculate the sum
+            //user:movie relation
+           //calculate the sum
             double sum = 0;
-            for (DoubleWritable value : values) {
+            for (DoubleWritable value : values){
                 sum += value.get();
             }
             context.write(key, new DoubleWritable(sum));

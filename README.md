@@ -21,6 +21,10 @@ Item CF
 + Build rating matrix
 + Matrix computation to get recommending result
 
+---
++  recommended video for user by implementing Item Collaborative Filtering algorithm
++ built user rating matrix from dataset and built co-visitation matrix
++ lastly, we merge them to get the recommending list
 
 ---
 * 此项目我将运用Netflix数据, 给用户推荐他们之前喜欢的电影的相似电影。
